@@ -2,27 +2,28 @@ import requests
 from datetime import datetime
 from jyapyforex.exceptions import ForexAPIError, InvalidCurrencyError, RateNotFoundError, RateLimitExceededError
 
-class FixerIOClient:
+class OpenExchangeRatesClient:
     """
-    Client for interacting with the Fixer.io API to retrieve forex rates.
-    Requires an API key from Fixer.io.
+    Client for interacting with the OpenExchangeRates API to retrieve forex rates.
+    Requires an API key from OpenExchangeRates.
     """
-    BASE_URL = "http://data.fixer.io/api/"
+    BASE_URL = "https://openexchangerates.org/api/"
+
 
     def __init__(self, api_key: str):
         """
         Initializes the FixerIOClient with the provided API key.
 
         Args:
-            api_key (str): Your API key for Fixer.io.
+            api_key (str): Your API key for OpenExchangeRates.
         """
         if not api_key:
-            raise ValueError("Fixer.io API key cannot be empty.")
+            raise ValueError("OpenExchangeRates API key cannot be empty.")
         self.api_key = api_key
 
     def get_historical_rate(self, date: str, base_currency: str, target_currency: str, retry: bool=False) -> float:
         """
-        Fetches the historical exchange rate from Fixer.io for a specific date.
+        Fetches the historical exchange rate from OpenExchangeRates for a specific date.
 
         Args:
             date (str): The date for which to retrieve the rate, in "YYYY-MM-DD" format.
@@ -43,38 +44,39 @@ class FixerIOClient:
         except ValueError:
             raise ValueError(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
         
-        # Fixer.io free plan typically uses EUR as base
-        default_base = 'EUR'
-        endpoint = f"{self.BASE_URL}{date}"
+        # OpenExchangeRates free plan typically uses USD as base
+        default_base = 'USD'
+        endpoint = f"{self.BASE_URL}historical/{date}.json"
         params = {
-            "access_key": self.api_key,
+            "app_id": self.api_key,
             "base": default_base.upper(), # Ensure currency codes are uppercase
-            "symbols": f"{target_currency.upper()},{base_currency.upper()}"
+            "symbols": f"{target_currency.upper()},{base_currency.upper()}",
+            "show_alternative": False,
+            "prettyprint": False
         }
+        headers = {"accept": "application/json"}
+
         try:
-            response = requests.get(endpoint, params=params, timeout=10)
+            response = requests.get(endpoint, params=params, timeout=10, headers=headers)
             response.raise_for_status()  # Raise an exception for HTTP errors
             data = response.json()
+            if data.get("error", False):
+                error_info = data
+                error_code = error_info.get('status')
+                error_type = error_info.get('message', 'UnknownError')
+                error_message = error_info.get('description', 'No specific error information provided.')
 
-            if not data.get("success"):
-                error_info = data.get("error", {})
-                error_code = error_info.get('code')
-                error_type = error_info.get('type', 'UnknownError')
-                error_message = error_info.get('info', 'No specific error information provided.')
-
-                if error_code == 101: # Invalid API Key
-                    raise ForexAPIError(f"Fixer.io API Error (Code {error_code}): Invalid API Key. {error_message}")
-                elif error_code == 201: # Invalid base currency
-                    raise InvalidCurrencyError(f"Fixer.io API Error (Code {error_code}): Invalid base currency '{base_currency}'. {error_message}")
-                elif error_code == 202: # Invalid symbols
-                    raise InvalidCurrencyError(f"Fixer.io API Error (Code {error_code}): Invalid target currency '{target_currency}'. {error_message}")
-                elif error_code == 302: # Historical data not available for date
-                    raise RateNotFoundError(f"Fixer.io API Error (Code {error_code}): Historical data not available for date '{date}'. {error_message}")
-                elif error_code == 106:
-                    raise RateLimitExceededError(f"Fixer.io API Error (Code {error_code}): Rate limit exceeded")
+                if error_code == 401: # Invalid API Key
+                    raise ForexAPIError(f"OpenExchangeRates API Error (Code {error_code}): Invalid API Key. {error_message}")
+                elif error_code ==400: # Invalid base currency or date
+                    raise InvalidCurrencyError(f"OpenExchangeRates API Error (Code {error_code}): Invalid base currency '{base_currency}' or date {date}. {error_message}")
+                elif error_code == 404: # Historical data not available for date
+                    raise RateNotFoundError(f"OpenExchangeRates API Error (Code {error_code}): Historical data not available for date '{date}'. {error_message}")
+                elif error_code == 429 or error_code == 403:
+                    raise RateLimitExceededError(f"OpenExchangeRates API Error (Code {error_code}): Rate limit exceeded")
                 else:
-                    raise ForexAPIError(f"Fixer.io API Error ({error_type}, Code {error_code}): {error_message}")
-
+                    raise ForexAPIError(f"OpenExchangeRates API Error ({error_type}, Code {error_code}): {error_message}")
+            
             rates = data.get("rates", {})
             if target_currency.upper() in rates and base_currency.upper() in rates:
                 return rates[target_currency.upper()]/rates[base_currency.upper()]
@@ -90,11 +92,11 @@ class FixerIOClient:
                 raise RateNotFoundError(f"Rate for {missing} not found for {date}.")
 
         except requests.exceptions.Timeout:
-            raise ForexAPIError(f"Fixer.io API request timed out after 10 seconds.")
+            raise ForexAPIError(f"OpenExchangeRates API request timed out after 10 seconds.")
         except requests.exceptions.ConnectionError:
-            raise ForexAPIError(f"Could not connect to Fixer.io API. Check your internet connection.")
+            raise ForexAPIError(f"Could not connect to OpenExchangeRates API. Check your internet connection.")
         except requests.exceptions.RequestException as e:
-            raise ForexAPIError(f"An unexpected request error occurred with Fixer.io: {e}")
+            raise ForexAPIError(f"An unexpected request error occurred with OpenExchangeRates: {e}")
         except Exception as e:
             # Catch any other unexpected errors
-            raise ForexAPIError(f"An unexpected error occurred while processing Fixer.io response: {e}")
+            raise ForexAPIError(f"An unexpected error occurred while processing OpenExchangeRates response: {e}")

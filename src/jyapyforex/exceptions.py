@@ -11,3 +11,7 @@ class InvalidCurrencyError(ForexAPIError):
 class RateNotFoundError(ForexAPIError):
     """Raised when a conversion rate cannot be found for the given parameters."""
     pass
+
+class RateLimitExceededError(ForexAPIError):
+    """Raised when rate limit is exceeded for the given parameters."""
+    pass

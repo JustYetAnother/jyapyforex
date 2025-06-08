@@ -7,7 +7,9 @@ from typing import Dict, Optional
 
 # Import specific API clients
 from jyapyforex.api_clients.fixer_io import FixerIOClient
-# from jyapyforex.api_clients.open_exchange_rates import OpenExchangeRatesClient # Future client
+from jyapyforex.api_clients.open_exchange_rates import OpenExchangeRatesClient
+from jyapyforex.api_clients.exchange_rate_host import ExchangeRateHostClient
+
 # from jyapyforex.api_clients.oanda import OandaClient # Future client
 
 from jyapyforex.exceptions import ForexAPIError, InvalidCurrencyError, RateNotFoundError
@@ -48,6 +50,16 @@ class ForexConverter:
         if fixer_api_key:
             self.api_clients['fixer_io'] = FixerIOClient(fixer_api_key)
 
+        # OpenExchangeRatesClient
+        open_exchange_rates_key = (api_keys.get('OPEN_EXCHANGE_RATES_API_KEY') if api_keys else None) or os.getenv('OPEN_EXCHANGE_RATES_API_KEY')
+        if open_exchange_rates_key:
+            self.api_clients['open_exchange_rates'] = OpenExchangeRatesClient(open_exchange_rates_key)
+        
+        # ExchangeRateHostClient
+        exchange_rate_host_key = (api_keys.get('EXCHANGE_RATE_HOST_API_KEY') if api_keys else None) or os.getenv('EXCHANGE_RATE_HOST_API_KEY')
+        if exchange_rate_host_key:
+            self.api_clients['exchange_rate_host'] = ExchangeRateHostClient(exchange_rate_host_key)
+        
         # Add other API clients here (e.g., OpenExchangeRatesClient, OandaClient)
         # open_exchange_rates_key = (api_keys.get('OPEN_EXCHANGE_RATES_API_KEY') if api_keys else None) or os.getenv('OPEN_EXCHANGE_RATES_API_KEY')
         # if open_exchange_rates_key:
