@@ -15,7 +15,7 @@ On Windows
 ```bash
 .venv\Scripts\activate.bat
 ```
-powershell:
+Powershell:
 ```bash
 .venv\Scripts\Activate.ps1
 ```
@@ -23,6 +23,12 @@ powershell:
 ### Install library in editable mode
 ```bash
 python3 -m pip install -e .
+```
+
+### Test local install of library
+```bash
+cd test
+python3 test_converters.py
 ```
 
 ## Publishing the library
@@ -37,16 +43,27 @@ python3 -m pip install build twine
 rm -rf dist/*
 ```
 
-### Upload package
+### Build package
+```bash
+python3 -m build
+```
 
-TestPyPi repository
+### Upload package to TestPyPi and test
 
 ```bash
 python3 -m twine upload --repository testpypi dist/*
+pip uninstall jyapyforex
+pip install --index-url https://test.pypi.org/simple/  jyapyforex
+cd test
+python3 test_converters.py
 ```
 
-PyPi repository
+### Upload package to PyPi and test
 
 ```bash
 python3 -m twine upload dist/*
+pip uninstall jyapyforex
+pip install jyapyforex
+cd test
+python3 test_converters.py
 ```
