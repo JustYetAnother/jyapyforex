@@ -3,8 +3,8 @@ from jyapyforex import ForexConverter
 import time
 import os
 
-# Ensure your API key is set in your environment before running this script
-# For example: export FIXER_IO_API_KEY="YOUR_ACTUAL_FIXER_IO_API_KEY"
+# Ensure your API key is set in your .env file before running this script
+# For example: FIXER_IO_API_KEY=YOUR_ACTUAL_FIXER_IO_API_KEY
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 

@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime
 from jyapyforex.exceptions import ForexAPIError, InvalidCurrencyError, RateNotFoundError, RateLimitExceededError
+from jyapyforex.utils import logger
 
 class OpenExchangeRatesClient:
     """
@@ -18,6 +19,7 @@ class OpenExchangeRatesClient:
             api_key (str): Your API key for OpenExchangeRates.
         """
         if not api_key:
+            logger.error("OpenExchangeRates API key cannot be empty.")
             raise ValueError("OpenExchangeRates API key cannot be empty.")
         self.api_key = api_key
 
@@ -42,6 +44,7 @@ class OpenExchangeRatesClient:
         try:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
+            logger.error(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
             raise ValueError(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
         
         # OpenExchangeRates free plan typically uses USD as base
@@ -55,16 +58,21 @@ class OpenExchangeRatesClient:
             "prettyprint": False
         }
         headers = {"accept": "application/json"}
+        logger.debug(f"Making API request to OpenExchangeRates: {endpoint} with params {params}")
 
         try:
             response = requests.get(endpoint, params=params, timeout=10, headers=headers)
             response.raise_for_status()  # Raise an exception for HTTP errors
             data = response.json()
+            logger.debug(f"OpenExchangeRates API response: {data}")
+
             if data.get("error", False):
                 error_info = data
                 error_code = error_info.get('status')
                 error_type = error_info.get('message', 'UnknownError')
                 error_message = error_info.get('description', 'No specific error information provided.')
+                detailed_error = f"OpenExchangeRates API Error ({error_type}, Code {error_code}): {error_message}"
+                logger.error(detailed_error)
 
                 if error_code == 401: # Invalid API Key
                     raise ForexAPIError(f"OpenExchangeRates API Error (Code {error_code}): Invalid API Key. {error_message}")
@@ -89,6 +97,7 @@ class OpenExchangeRatesClient:
                         missing = missing + ", "
                     missing = missing + base_currency.upper()
                 # This might happen if the API returns success but no rate for the specific symbol
+                logger.warning(f"OpenExchangeRates did not return a rate for {missing} on {date}.")
                 raise RateNotFoundError(f"Rate for {missing} not found for {date}.")
 
         except requests.exceptions.Timeout:

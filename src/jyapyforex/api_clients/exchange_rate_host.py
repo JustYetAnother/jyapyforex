@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime
 from jyapyforex.exceptions import ForexAPIError, InvalidCurrencyError, RateNotFoundError, RateLimitExceededError
+from jyapyforex.utils import logger
 
 class ExchangeRateHostClient:
     """
@@ -17,6 +18,7 @@ class ExchangeRateHostClient:
             api_key (str): Your API key for ExchangeRateHost.
         """
         if not api_key:
+            logger.error("ExchangeRateHost API key cannot be empty.")
             raise ValueError("ExchangeRateHost API key cannot be empty.")
         self.api_key = api_key
 
@@ -41,6 +43,7 @@ class ExchangeRateHostClient:
         try:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
+            logger.error(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
             raise ValueError(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
         
         # ExchangeRateHost free plan typically uses USD as base
@@ -51,15 +54,21 @@ class ExchangeRateHostClient:
             "access_key": self.api_key,
             "currencies": f"{target_currency.upper()},{base_currency.upper()}"
         }
+        logger.debug(f"Making API request to ExchangeRateHost: {endpoint} with params {params}")
+
         try:
             response = requests.get(endpoint, params=params, timeout=10)
             response.raise_for_status()  # Raise an exception for HTTP errors
             data = response.json()
+            logger.debug(f"ExchangeRateHost API response: {data}")
+
             if not data.get("success"):
                 error_info = data.get("error", {})
                 error_code = error_info.get('code')
                 error_type = error_info.get('type', 'UnknownError')
                 error_message = error_type
+                detailed_error = f"ExchangeRateHost API Error ({error_type}, Code {error_code}): {error_message}"
+                logger.error(detailed_error)
 
                 if error_code == 101: # Invalid API Key
                     raise ForexAPIError(f"ExchangeRateHost API Error (Code {error_code}): Invalid API Key. {error_message}")
@@ -88,6 +97,7 @@ class ExchangeRateHostClient:
                         missing = missing + ", "
                     missing = missing + base_currency.upper()
                 # This might happen if the API returns success but no rate for the specific symbol
+                logger.warning(f"ExchangeRateHost did not return a rate for {missing} on {date}.")
                 raise RateNotFoundError(f"Rate for {missing} not found for {date}.")
 
         except requests.exceptions.Timeout:

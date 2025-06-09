@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime
 from jyapyforex.exceptions import ForexAPIError, InvalidCurrencyError, RateNotFoundError, RateLimitExceededError
+from jyapyforex.utils import logger
 
 class FixerIOClient:
     """
@@ -17,6 +18,7 @@ class FixerIOClient:
             api_key (str): Your API key for Fixer.io.
         """
         if not api_key:
+            logger.error("Fixer.io API key cannot be empty.")
             raise ValueError("Fixer.io API key cannot be empty.")
         self.api_key = api_key
 
@@ -41,6 +43,7 @@ class FixerIOClient:
         try:
             datetime.strptime(date, "%Y-%m-%d")
         except ValueError:
+            logger.error(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
             raise ValueError(f"Invalid date format: '{date}'. Expected YYYY-MM-DD.")
         
         # Fixer.io free plan typically uses EUR as base
@@ -51,17 +54,22 @@ class FixerIOClient:
             "base": default_base.upper(), # Ensure currency codes are uppercase
             "symbols": f"{target_currency.upper()},{base_currency.upper()}"
         }
+        logger.debug(f"Making API request to Fixer.io: {endpoint} with params {params}")
+
         try:
             response = requests.get(endpoint, params=params, timeout=10)
             response.raise_for_status()  # Raise an exception for HTTP errors
             data = response.json()
+            logger.debug(f"Fixer.io API response: {data}")
 
             if not data.get("success"):
                 error_info = data.get("error", {})
                 error_code = error_info.get('code')
                 error_type = error_info.get('type', 'UnknownError')
                 error_message = error_info.get('info', 'No specific error information provided.')
-
+                detailed_error = f"Fixer.io API Error ({error_type}, Code {error_code}): {error_message}"
+                logger.error(detailed_error)
+                
                 if error_code == 101: # Invalid API Key
                     raise ForexAPIError(f"Fixer.io API Error (Code {error_code}): Invalid API Key. {error_message}")
                 elif error_code == 201: # Invalid base currency
@@ -87,6 +95,7 @@ class FixerIOClient:
                         missing = missing + ", "
                     missing = missing + base_currency.upper()
                 # This might happen if the API returns success but no rate for the specific symbol
+                logger.warning(f"Fixer.io did not return a rate for {missing} on {date}.")
                 raise RateNotFoundError(f"Rate for {missing} not found for {date}.")
 
         except requests.exceptions.Timeout:

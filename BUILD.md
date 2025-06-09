@@ -1,4 +1,4 @@
-## How to build and upload files
+# How to build and upload files
 
 ## Create virtual environment if not present
 ```bash
@@ -29,7 +29,7 @@ python3 -m pip install -e .
 
 ### Install other dependencies
 ```bash
-python3 -m pip install twine
+python3 -m pip install build twine
 ```
 
 ### Clean existing files
@@ -37,12 +37,16 @@ python3 -m pip install twine
 rm -rf dist/*
 ```
 
-### Build package
+### Upload package
+
+TestPyPi repository
+
 ```bash
-python3 -m pip install build
+python3 -m twine upload --repository testpypi dist/*
 ```
 
-### Upload package
+PyPi repository
+
 ```bash
 python3 -m twine upload dist/*
 ```

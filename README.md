@@ -5,7 +5,7 @@ A Python library for fetching historical foreign exchange (forex) rates from var
 ## Features
 
 * **Unified Interface:** Get conversion rates using a single, consistent API.
-* **Multiple Provider Support:** Designed to support multiple forex API providers (currently includes Fixer.io).
+* **Multiple Provider Support:** Designed to support multiple forex API providers (currently includes Fixer.io, ExchangeRateHost, OpenExchangeRates).
 * **Historical Data:** Fetch rates for specific past dates.
 * **Secure API Key Handling:** Utilizes environment variables for API key management.
 
@@ -46,13 +46,19 @@ This library requires API keys from the forex rate providers you wish to use. Fo
 
 Alternatively, you can pass the API keys directly to the `ForexConverter` constructor as a dictionary.
 
+Following are the expected environment variables for supported providers:
+|     Provider         |            Key              |
+| -------------------- | --------------------------- |
+| Fixer.io             | FIXER_IO_API_KEY            |
+| Open Exchange Rates  | OPEN_EXCHANGE_RATES_API_KEY |
+| Exchange Rate Host   | EXCHANGE_RATE_HOST_API_KEY  |
+
 ## Usage
 
 Here's how to use the `ForexConverter` to get historical exchange rates:
 
 ```python
 from jyapyforex import ForexConverter
-import os
 
 # Initialize the converter. It will automatically look for API keys
 # in environment variables or you can pass them explicitly.
